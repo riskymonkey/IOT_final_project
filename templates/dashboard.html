@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧燈泡控制面板</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 50px; 
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+        .status { font-size: 24px; margin: 20px 0; }
+        .error { color: red; }
+        .info { color: #666; font-size: 16px; margin: 10px 0; }
+        
+        /* 燈泡容器 */
+        .bulb-container {
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        /* 燈泡圖示 */
+        .bulb {
+            width: 100px;
+            height: 120px;
+            margin: 0 auto;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+        
+        /* 燈泡主體 */
+        .bulb-body {
+            width: 60px;
+            height: 80px;
+            background: #ddd;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            margin: 0 auto;
+            position: relative;
+            transition: all 0.5s ease;
+            border: 3px solid #999;
+        }
+        
+        /* 燈泡底座 */
+        .bulb-base {
+            width: 40px;
+            height: 20px;
+            background: #666;
+            margin: 0 auto;
+            border-radius: 0 0 10px 10px;
+            position: relative;
+        }
+        
+        /* 燈泡螺紋 */
+        .bulb-base::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #888;
+            box-shadow: 0 5px 0 #888, 0 10px 0 #888;
+        }
+        
+        /* 燈泡發光效果 */
+        .bulb.on .bulb-body {
+            background: linear-gradient(135deg, #fff700, #ffed4e);
+            border-color: #ffd700;
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 40px rgba(255, 215, 0, 0.6),
+                0 0 60px rgba(255, 215, 0, 0.4);
+        }
+        
+        /* 燈泡關閉狀態 */
+        .bulb.off .bulb-body {
+            background: #ddd;
+            border-color: #999;
+            box-shadow: none;
+        }
+        
+        /* 光暈效果 */
+        .glow {
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .bulb.on .glow {
+            opacity: 1;
+        }
+        
+        .status-text {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: color 0.3s ease;
+        }
+        
+        .status-text.on {
+            color: #ff6600;
+            text-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+        }
+        
+        .status-text.off {
+            color: #666;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>智慧燈泡控制面板</h1>
+    
+    <div class="bulb-container">
+        <div class="bulb off" id="bulbIcon">
+            <div class="glow"></div>
+            <div class="bulb-body"></div>
+            <div class="bulb-base"></div>
+        </div>
+    </div>
+    
+    <div class="status-text off" id="statusText">燈泡狀態: 載入中...</div>
+    
+    <div class="info">當前溫度: <span id="temperature">--</span>°C</div>
+    <div class="info">閾值: <span id="threshold">--</span>°C</div>
+    <div class="info">最後更新: <span id="lastUpdate">--</span></div>
+    
+    <div id="error" class="error"></div>
+    <button onclick="updateStatus()">手動更新</button>
+    
+    <script>
+        function updateStatus() {
+            console.log('開始更新狀態...');
+            
+            fetch('http://127.0.0.1:5001/status')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('收到數據:', data);
+                    
+                    const lightStatus = data.light_status || data.status || 'Unknown';
+                    const bulbIcon = document.getElementById('bulbIcon');
+                    const statusText = document.getElementById('statusText');
+                    
+                    // 更新燈泡圖示和狀態文字
+                    if (lightStatus === 'ON') {
+                        bulbIcon.className = 'bulb on';
+                        statusText.className = 'status-text on';
+                        statusText.textContent = '燈泡狀態: 開啟 💡';
+                        document.body.style.backgroundColor = '#fffef7';
+                    } else {
+                        bulbIcon.className = 'bulb off';
+                        statusText.className = 'status-text off';
+                        statusText.textContent = '燈泡狀態: 關閉';
+                        document.body.style.backgroundColor = '#ffffff';
+                    }
+                    
+                    // 更新其他資訊
+                    if (data.current_temperature !== undefined) {
+                        document.getElementById('temperature').textContent = data.current_temperature.toFixed(1);
+                    }
+                    
+                    if (data.threshold !== undefined) {
+                        document.getElementById('threshold').textContent = data.threshold;
+                    }
+                    
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    document.getElementById('error').textContent = '';
+                })
+                .catch(error => {
+                    console.error('連接錯誤:', error);
+                    document.getElementById('statusText').textContent = '燈泡狀態: 無法連接';
+                    document.getElementById('error').textContent = '錯誤: ' + error.message;
+                });
+        }
+        
+        window.onload = function() {
+            console.log('頁面載入完成');
+            updateStatus();
+            setInterval(updateStatus, 3000);
+        };
+    </script>
+</body>
+</html>
+
