@@ -7,4 +7,6 @@
 
 python temperature_sensor.py\
 python light_actuator.py\
-cd templates -> python -m http.server 8000 -> http://127.0.0.1:8000/dashboard.html
+cd templates -> python -m http.server 8000 -> http://127.0.0.1:8000/dashboard.html\
+
+註: pip install flask-cors
